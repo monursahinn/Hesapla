@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:BasePage
+    x:Class="Hesapla.Mobile.Views.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Hesapla.Mobile.Views"
+    xmlns:vm="clr-namespace:Hesapla.Mobile.ViewModels"
+    xmlns:controls="clr-namespace:Hesapla.Mobile.Controls"
+    xmlns:api="clr-namespace:Hesapla.Mobile.Models.Api"
+    x:DataType="vm:DashboardViewModel"
+    Title="Pano">
+
+    <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding LoadCommand}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="12">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding Greeting}" Style="{StaticResource PageTitleLabel}" />
+                    <Label Text="Güncel finans özetiniz" Style="{StaticResource SubtitleLabel}" />
+                </VerticalStackLayout>
+
+                <Border Style="{StaticResource Card}" Padding="12" BackgroundColor="{DynamicResource WarningBgColor}" Stroke="{DynamicResource WarningTextColor}"
+                        IsVisible="{Binding SubscriptionNotice, Converter={StaticResource HasText}}">
+                    <Label Text="{Binding SubscriptionNotice}" TextColor="{DynamicResource WarningTextColor}" FontSize="13" />
+                </Border>
+
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorLabel}" IsVisible="{Binding HasError}" />
+                <controls:Skeleton Rows="4" IsVisible="{Binding ShowSkeleton}" />
+
+                <VerticalStackLayout Spacing="12" IsVisible="{Binding Data, Converter={StaticResource NotNull}}">
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Border Style="{StaticResource Card}" Padding="14">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Kasa" Style="{StaticResource MutedLabel}" />
+                                <Label Text="{Binding Data.CashTotal, Converter={StaticResource Currency}}" Style="{StaticResource AmountLabel}" FontSize="17" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Card}" Padding="14">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Banka" Style="{StaticResource MutedLabel}" />
+                                <Label Text="{Binding Data.BankTotal, Converter={StaticResource Currency}}" Style="{StaticResource AmountLabel}" FontSize="17" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Alacaklar" Style="{StaticResource MutedLabel}" />
+                                <Label Text="{Binding Data.Receivables, Converter={StaticResource Currency}}" Style="{StaticResource AmountLabel}" FontSize="17" TextColor="{DynamicResource SuccessTextColor}" />
+                                <Label Text="{Binding Data.OverdueReceivables, Converter={StaticResource Currency}, StringFormat='Vadesi geçen: {0}'}" FontSize="11" TextColor="{DynamicResource ErrorTextColor}" IsVisible="{Binding Data.HasOverdue}" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Card}" Padding="14">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Borçlar" Style="{StaticResource MutedLabel}" />
+                                <Label Text="{Binding Data.Payables, Converter={StaticResource Currency}}" Style="{StaticResource AmountLabel}" FontSize="17" TextColor="{DynamicResource WarningTextColor}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding CanWrite}">
+                        <Button Text="+ Tahsilat" Style="{StaticResource PrimaryButton}" Command="{Binding NewCollectionCommand}" />
+                        <Button Grid.Column="1" Text="+ Gider" Style="{StaticResource SecondaryButton}" HeightRequest="48" Command="{Binding NewExpenseCommand}" />
+                    </Grid>
+
+                    <Label Text="Bu ay" Style="{StaticResource SectionTitleLabel}" />
+                    <Border Style="{StaticResource Card}">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                            <Label Text="Satış" Style="{StaticResource SubtitleLabel}" />
+                            <Label Grid.Column="1" Text="{Binding Data.MonthSales, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" />
+                            <Label Grid.Row="1" Text="Tahsilat" Style="{StaticResource SubtitleLabel}" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding Data.MonthCollections, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" TextColor="{DynamicResource SuccessTextColor}" />
+                            <Label Grid.Row="2" Text="Alış" Style="{StaticResource SubtitleLabel}" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="{Binding Data.MonthPurchases, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" />
+                            <Label Grid.Row="3" Text="Gider" Style="{StaticResource SubtitleLabel}" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="{Binding Data.MonthExpenses, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" TextColor="{DynamicResource WarningTextColor}" />
+                        </Grid>
+                    </Border>
+
+                    <Label Text="Kasa ve banka hesapları" Style="{StaticResource SectionTitleLabel}" />
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Accounts}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="api:Account">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout>
+                                            <Label Text="{Binding Name}" FontSize="14" LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding TypeText}" Style="{StaticResource MutedLabel}" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding Balance, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" VerticalOptions="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Vadesi geçen alacaklar" Style="{StaticResource SectionTitleLabel}" />
+                    <Label Text="Vadesi geçen alacak yok." Style="{StaticResource SubtitleLabel}"
+                           IsVisible="{Binding Overdue.Count, Converter={StaticResource IntToBool}, ConverterParameter=invert}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Overdue}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="api:InvoiceListItem">
+                                <Border Style="{StaticResource ListCard}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout>
+                                            <Label Text="{Binding CustomerTitle}" Style="{StaticResource CardTitleLabel}" />
+                                            <Label Style="{StaticResource MutedLabel}">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="{Binding DocumentNo}" />
+                                                        <Span Text=" • vade " />
+                                                        <Span Text="{Binding DueDate, Converter={StaticResource DateText}, ConverterParameter=dd.MM.yyyy}" />
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding Remaining, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold"
+                                               TextColor="{DynamicResource ErrorTextColor}" VerticalOptions="Center" />
+                                    </Grid>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding OpenInvoiceCommand, Source={RelativeSource AncestorType={x:Type vm:DashboardViewModel}}, x:DataType=vm:DashboardViewModel}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</views:BasePage>

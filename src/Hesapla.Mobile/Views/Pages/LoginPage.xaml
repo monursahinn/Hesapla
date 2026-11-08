@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:BasePage
+    x:Class="Hesapla.Mobile.Views.Pages.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Hesapla.Mobile.Views"
+    xmlns:vm="clr-namespace:Hesapla.Mobile.ViewModels"
+    xmlns:controls="clr-namespace:Hesapla.Mobile.Controls"
+    x:DataType="vm:LoginViewModel"
+    Shell.NavBarIsVisible="False"
+    Shell.FlyoutBehavior="Disabled">
+
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="24,56,24,32" Spacing="22">
+
+                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                    <Image Source="hesapla_logo.png" WidthRequest="84" HeightRequest="84" HorizontalOptions="Center" />
+                    <Label Text="Hesapla" FontSize="26" FontFamily="OpenSansSemibold" HorizontalOptions="Center" />
+                    <Label Text="KOBİ ön muhasebe" Style="{StaticResource SubtitleLabel}" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+
+                <Border Style="{StaticResource Card}" Padding="22" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="16">
+                        <Label Text="Giriş yap" FontSize="22" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" />
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="E-posta" Style="{StaticResource FieldLabel}" />
+                            <Border Style="{StaticResource InputBorder}">
+                                <Entry Text="{Binding Email}" Placeholder="ornek@firma.com" Keyboard="Email"
+                                       IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" ReturnType="Next" AutomationId="EmailEntry" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Şifre" Style="{StaticResource FieldLabel}" />
+                            <Border Style="{StaticResource InputBorder}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Entry Text="{Binding Password}" Placeholder="••••••••" IsPassword="{Binding IsPasswordHidden}"
+                                           ReturnType="Go" ReturnCommand="{Binding LoginCommand}" AutomationId="PasswordEntry" />
+                                    <Grid Grid.Column="1" WidthRequest="44" HeightRequest="44" SemanticProperties.Description="Şifreyi göster/gizle">
+                                        <controls:Icon Name="eye" Size="20" Color="{DynamicResource MutedTextColor}" IsVisible="{Binding IsPasswordHidden}" />
+                                        <controls:Icon Name="eye-off" Size="20" Color="{DynamicResource MutedTextColor}" IsVisible="{Binding IsPasswordHidden, Converter={StaticResource Not}}" />
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding TogglePasswordCommand}" />
+                                        </Grid.GestureRecognizers>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Label Text="Şifremi unuttum" Style="{StaticResource LinkLabel}" HorizontalOptions="End">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ForgotPasswordCommand}" />
+                            </Label.GestureRecognizers>
+                        </Label>
+
+                        <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorLabel}" IsVisible="{Binding HasError}" />
+
+                        <Grid>
+                            <Button Text="Giriş yap" Style="{StaticResource PrimaryButton}" Command="{Binding LoginCommand}"
+                                    IsEnabled="{Binding IsNotBusy}" AutomationId="LoginButton" />
+                            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{DynamicResource OnAccentColor}" HeightRequest="24" />
+                        </Grid>
+
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="4">
+                            <Label Text="Firmanız kayıtlı değil mi?" Style="{StaticResource SubtitleLabel}" />
+                            <Label Text="Ücretsiz deneyin" FontSize="13" TextColor="{DynamicResource AccentSky}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding RegisterCommand}" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Açılışta oturum geri yüklenirken giriş formu yerine gösterilir. -->
+        <Grid x:Name="RestoreOverlay" BackgroundColor="{DynamicResource PageBackgroundColor}" IsVisible="False">
+            <VerticalStackLayout Spacing="16" VerticalOptions="Center" HorizontalOptions="Center">
+                <Image Source="hesapla_logo.png" WidthRequest="80" HeightRequest="80" HorizontalOptions="Center" />
+                <Label Text="Hesapla" FontSize="20" FontFamily="OpenSansSemibold" HorizontalOptions="Center" />
+                <ActivityIndicator IsRunning="{Binding IsVisible, Source={x:Reference RestoreOverlay}, x:DataType=Grid}" HeightRequest="28" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</views:BasePage>

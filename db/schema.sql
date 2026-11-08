@@ -1,5 +1,5 @@
 -- =====================================================================================
--- HESAP — KOBİ ön muhasebe (SaaS) veritabanı şeması
+-- HESAPLA — KOBİ ön muhasebe (SaaS) veritabanı şeması
 -- MySQL 8.0.16+ (CHECK kısıtları için). Karakter seti utf8mb4, sıralama utf8mb4_0900_ai_ci.
 --
 -- Çok kiracılı yapı: her işletme bir FİRMA'dır; firmaya ait her tabloda FIRMA_ID bulunur ve

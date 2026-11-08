@@ -6,7 +6,7 @@ import os
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 schema = io.open(os.path.join(root, "db", "schema.sql"), encoding="utf-8").read().strip()
 
-doc = f"""HESAP — VERİTABANI KURULUM REHBERİ VE BETİKLERİ
+doc = f"""HESAPLA — VERİTABANI KURULUM REHBERİ VE BETİKLERİ
 ==================================================================================================
 
 Gereksinim: MySQL 8.0.16 veya üzeri (CHECK kısıtları için). MariaDB desteklenmez.
@@ -28,21 +28,21 @@ A1) MySQL 8'e yönetici (root) olarak bağlanın (MySQL Workbench veya komut sat
 A2) Veritabanını ve uygulamaya özel kullanıcıyı oluşturun. Uygulama root ile ÇALIŞTIRILMAMALI.
     'GucluBirSifre_Degistirin' yerine kendi şifrenizi yazın:
 
-    CREATE DATABASE IF NOT EXISTS hesap CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-    CREATE USER IF NOT EXISTS 'hesap_app'@'localhost' IDENTIFIED BY 'GucluBirSifre_Degistirin';
-    GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON hesap.* TO 'hesap_app'@'localhost';
+    CREATE DATABASE IF NOT EXISTS hesapla CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    CREATE USER IF NOT EXISTS 'hesapla_app'@'localhost' IDENTIFIED BY 'GucluBirSifre_Degistirin';
+    GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON hesapla.* TO 'hesapla_app'@'localhost';
     FLUSH PRIVILEGES;
 
 A3) Tabloları oluşturun (proje klasöründeyken):
 
-    mysql -u root -p hesap < db/schema.sql
+    mysql -u root -p hesapla < db/schema.sql
 
-    veya MySQL Workbench'te "hesap" şemasını seçip BÖLÜM C'deki betiğin tamamını yapıştırıp çalıştırın.
+    veya MySQL Workbench'te "hesapla" şemasını seçip BÖLÜM C'deki betiğin tamamını yapıştırıp çalıştırın.
 
 A4) Bağlantı dizesini ve gizli ayarları user-secrets'a girin (şifreler dosyalara ve Git'e yazılmaz):
 
-    cd src/Hesap.Api
-    dotnet user-secrets set "ConnectionStrings:Hesap" "Server=localhost;Port=3306;Database=hesap;Uid=hesap_app;Pwd=GucluBirSifre_Degistirin;SslMode=None;AllowPublicKeyRetrieval=True;"
+    cd src/Hesapla.Api
+    dotnet user-secrets set "ConnectionStrings:Hesapla" "Server=localhost;Port=3306;Database=hesapla;Uid=hesapla_app;Pwd=GucluBirSifre_Degistirin;SslMode=None;AllowPublicKeyRetrieval=True;"
     dotnet user-secrets set "Jwt:Key" "<en az 64 karakter rastgele metin>"
     dotnet user-secrets set "Setup:SuperUserEmail" "siz@firmaniz.com"
     dotnet user-secrets set "Setup:SuperUserPassword" "<en az 8 karakter, harf ve rakam>"
@@ -52,7 +52,7 @@ A4) Bağlantı dizesini ve gizli ayarları user-secrets'a girin (şifreler dosya
 
 A5) Uygulamayı başlatın:
 
-    dotnet run --project src/Hesap.Api
+    dotnet run --project src/Hesapla.Api
 
     İlk açılışta platform yöneticisi (Setup:SuperUserEmail) oluşturulur. Giriş yaptıktan sonra
     Setup:SuperUserPassword ayarını silin:
@@ -79,7 +79,7 @@ B2) Tabloları oluşturun
 B3) Uygulama ayarları — sunucuda ortam değişkeni olarak verin (IIS: web.config environmentVariables,
     Linux: systemd Environment=, hosting paneli: "Environment Variables"):
 
-    ConnectionStrings__Hesap   = Server=...;Port=3306;Database=...;Uid=...;Pwd=...;SslMode=Required;
+    ConnectionStrings__Hesapla   = Server=...;Port=3306;Database=...;Uid=...;Pwd=...;SslMode=Required;
     Jwt__Key                   = <en az 64 karakter rastgele, yerelden FARKLI>
     App__PublicBaseUrl         = https://alanadiniz.com   (şifre sıfırlama bağlantıları bununla kurulur)
     App__Name                  = Ürün adınız             (ekranlarda ve e-postalarda görünür)
@@ -90,10 +90,10 @@ B3) Uygulama ayarları — sunucuda ortam değişkeni olarak verin (IIS: web.con
 
 B4) Yedekleme (her gün önerilir; yedeği sunucu dışında saklayın):
 
-    mysqldump -h SUNUCU -u KULLANICI -p --single-transaction --routines --triggers VERITABANI > hesap-yedek-$(date +%F).sql
+    mysqldump -h SUNUCU -u KULLANICI -p --single-transaction --routines --triggers VERITABANI > hesapla-yedek-$(date +%F).sql
 
     Geri yükleme:
-    mysql -h SUNUCU -u KULLANICI -p VERITABANI < hesap-yedek-2026-11-08.sql
+    mysql -h SUNUCU -u KULLANICI -p VERITABANI < hesapla-yedek-2026-11-08.sql
 
 B5) Kurulum kontrolü (13 tablo görünmeli):
 

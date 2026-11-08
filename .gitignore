@@ -9,11 +9,11 @@ publish/
 
 # Web paneli: bağımlılıklar ve derleme çıktısı (dotnet publish sırasında yeniden üretilir)
 node_modules/
-src/Hesap.Api/wwwroot/app/
-src/Hesap.Api/ClientApp/dist/
+src/Hesapla.Api/wwwroot/app/
+src/Hesapla.Api/ClientApp/dist/
 
 # Çalışma anı verisi (firma logoları) — repoya değil yedeğe girer
-src/Hesap.Api/App_Data/
+src/Hesapla.Api/App_Data/
 
 # Gizli ayarlar (user-secrets dışında yerel dosya kullanılırsa)
 appsettings.*.local.json

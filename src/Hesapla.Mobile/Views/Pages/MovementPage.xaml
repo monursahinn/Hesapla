@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:BasePage
+    x:Class="Hesapla.Mobile.Views.Pages.MovementPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Hesapla.Mobile.Views"
+    xmlns:vm="clr-namespace:Hesapla.Mobile.ViewModels"
+    xmlns:api="clr-namespace:Hesapla.Mobile.Models.Api"
+    x:DataType="vm:MovementViewModel"
+    Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,20,20,32" Spacing="14">
+
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Tarih" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <DatePicker Date="{Binding Date}" Format="dd.MM.yyyy" />
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6">
+                <Label Text="{Binding AccountLabel}" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Accounts}" SelectedItem="{Binding Account}" ItemDisplayBinding="{Binding Display, x:DataType=api:Account}" Title="Hesap seçin" />
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsTransfer}">
+                <Label Text="Giriş hesabı" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Accounts}" SelectedItem="{Binding TargetAccount}" ItemDisplayBinding="{Binding Display, x:DataType=api:Account}" Title="Hesap seçin" />
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding NeedsCustomer}">
+                <Label Text="Cari" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Customers}" SelectedItem="{Binding Customer}" ItemDisplayBinding="{Binding Title, x:DataType=api:Customer}" Title="Cari seçin" />
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding HasInvoices}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="Faturaya bağla (isteğe bağlı)" Style="{StaticResource FieldLabel}" />
+                    <Label Grid.Column="1" Text="Kaldır" Style="{StaticResource LinkLabel}" FontSize="13"
+                           IsVisible="{Binding Invoice, Converter={StaticResource NotNull}}">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ClearInvoiceCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </Grid>
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Invoices}" SelectedItem="{Binding Invoice}" ItemDisplayBinding="{Binding PickerText, x:DataType=api:InvoiceListItem}" Title="Fatura seçin" />
+                </Border>
+                <Label Text="Bağlanmazsa tutar cari hesaba mahsup edilir." Style="{StaticResource MutedLabel}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding NeedsCategory}">
+                <Label Text="Kategori" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Categories}" SelectedItem="{Binding Category}" ItemDisplayBinding="{Binding Name, x:DataType=api:Category}" Title="Kategori seçin" />
+                </Border>
+            </VerticalStackLayout>
+
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Tutar (₺)" Style="{StaticResource FieldLabel}" />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry Text="{Binding AmountText}" Placeholder="0,00" Keyboard="Numeric" />
+                    </Border>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="6" WidthRequest="110" IsVisible="{Binding NeedsCategory}">
+                    <Label Text="KDV" Style="{StaticResource FieldLabel}" />
+                    <Border Style="{StaticResource InputBorder}">
+                        <Picker ItemsSource="{x:Static vm:MovementViewModel.VatRates}" SelectedIndex="{Binding VatRateIndex}" ItemDisplayBinding="{Binding Text, x:DataType=api:Option}" />
+                    </Border>
+                </VerticalStackLayout>
+            </Grid>
+            <Label Text="Gider/gelir tutarı KDV dahil girilir." Style="{StaticResource MutedLabel}" IsVisible="{Binding NeedsCategory}" />
+
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Belge no" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Entry Text="{Binding DocumentNo}" Placeholder="Dekont / makbuz no" MaxLength="40" />
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Açıklama" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Editor Text="{Binding Description}" AutoSize="TextChanges" MaxLength="500" MinimumHeightRequest="60" />
+                </Border>
+            </VerticalStackLayout>
+
+            <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorLabel}" IsVisible="{Binding HasError}" />
+            <Grid>
+                <Button Text="Kaydet" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{DynamicResource OnAccentColor}" HeightRequest="24" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+</views:BasePage>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="description" content="Hesapla — KOBİ'ler için ön muhasebe: cari, fatura, kasa-banka ve raporlar" />
+    <link rel="icon" type="image/svg+xml" href="/app/brand/logo.svg" />
+    <title>Hesapla</title>
+    <style>
+      /* Açılış ekranı: uygulama kodu yüklenene kadar görünür, React ilk çizimde #root içeriğini değiştirir. */
+      .asy-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--splash-bg, #f4f6f9);
+        color: var(--splash-fg, #1f2937);
+        font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+      }
+      .asy-splash-inner { display: grid; justify-items: center; gap: 14px; }
+      .asy-splash img { width: 64px; height: 64px; }
+      .asy-splash-name { font-size: 18px; font-weight: 650; letter-spacing: 0.01em; }
+      .asy-splash-bar { width: 140px; height: 3px; border-radius: 3px; overflow: hidden; background: rgba(127, 127, 127, 0.18); position: relative; }
+      .asy-splash-bar::after { content: ""; position: absolute; inset: 0 auto 0 -40%; width: 40%; border-radius: 3px; background: #4f46e5; animation: asy-splash 1s ease-in-out infinite; }
+      @keyframes asy-splash { to { left: 100%; } }
+    </style>
+    <!-- Son kullanılan temanın zeminiyle açılsın; CSP satır içi betiğe izin vermediği için ayrı dosyadadır. -->
+    <script src="/app/theme-boot.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div class="asy-splash" role="status" aria-label="Yükleniyor">
+        <div class="asy-splash-inner">
+          <img src="/app/brand/logo.svg" alt="" />
+          <div class="asy-splash-bar"></div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

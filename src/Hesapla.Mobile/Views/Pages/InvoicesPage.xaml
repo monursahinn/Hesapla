@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:BasePage
+    x:Class="Hesapla.Mobile.Views.Pages.InvoicesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Hesapla.Mobile.Views"
+    xmlns:vm="clr-namespace:Hesapla.Mobile.ViewModels"
+    xmlns:controls="clr-namespace:Hesapla.Mobile.Controls"
+    xmlns:api="clr-namespace:Hesapla.Mobile.Models.Api"
+    x:DataType="vm:InvoicesViewModel"
+    Title="Faturalar">
+
+    <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding LoadCommand}">
+        <CollectionView ItemsSource="{Binding Items}" SelectionMode="None" Margin="16,0"
+                        RemainingItemsThreshold="5" RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+            <CollectionView.Header>
+                <VerticalStackLayout Spacing="10" Padding="0,16,0,8">
+                    <Border Style="{StaticResource InputBorder}">
+                        <Entry Text="{Binding Search}" Placeholder="Belge no veya cari ara" ReturnType="Search"
+                               ReturnCommand="{Binding LoadCommand}" ClearButtonVisibility="WhileEditing" />
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Border Style="{StaticResource InputBorder}">
+                            <Picker ItemsSource="{x:Static vm:InvoicesViewModel.Types}" SelectedIndex="{Binding SelectedTypeIndex}" ItemDisplayBinding="{Binding Text, x:DataType=api:Option}" />
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource InputBorder}">
+                            <Picker ItemsSource="{x:Static vm:InvoicesViewModel.Statuses}" SelectedIndex="{Binding SelectedStatusIndex}" ItemDisplayBinding="{Binding Text, x:DataType=api:Option}" />
+                        </Border>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Border Style="{StaticResource Card}" Padding="12">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Total, StringFormat='Toplam ({0} fatura)'}" Style="{StaticResource MutedLabel}" />
+                                <Label Text="{Binding SumTotal, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" FontSize="15" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Card}" Padding="12">
+                            <VerticalStackLayout>
+                                <Label Text="Kalan" Style="{StaticResource MutedLabel}" />
+                                <Label Text="{Binding SumRemaining, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" FontSize="15" TextColor="{DynamicResource WarningTextColor}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                    <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorLabel}" IsVisible="{Binding HasError}" />
+                    <controls:Skeleton Rows="5" IsVisible="{Binding ShowSkeleton}" />
+                </VerticalStackLayout>
+            </CollectionView.Header>
+
+            <CollectionView.EmptyView>
+                <Label Text="Fatura bulunamadı. Fatura kesimi web panelinden yapılır." Style="{StaticResource SubtitleLabel}" HorizontalOptions="Center" Margin="0,40" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="api:InvoiceListItem">
+                    <Border Style="{StaticResource ListCard}">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="2">
+                            <Label Text="{Binding CustomerTitle}" Style="{StaticResource CardTitleLabel}" />
+                            <Border Grid.Column="1" Style="{StaticResource Pill}" BackgroundColor="{Binding Status, Converter={StaticResource StatusTint}, ConverterParameter=invoice}">
+                                <Label Text="{Binding Status, Converter={StaticResource StatusText}, ConverterParameter=invoice}" FontSize="11"
+                                       TextColor="{Binding Status, Converter={StaticResource StatusColor}, ConverterParameter=invoice}" />
+                            </Border>
+                            <Label Grid.Row="1" Style="{StaticResource MutedLabel}">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding TypeText}" />
+                                        <Span Text=" • " />
+                                        <Span Text="{Binding DocumentNo}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding Total, Converter={StaticResource Currency}}" FontFamily="OpenSansSemibold" HorizontalOptions="End" />
+                            <Label Grid.Row="2" Text="{Binding DueDate, Converter={StaticResource DateText}, ConverterParameter=dd.MM.yyyy, StringFormat='Vade {0}'}" Style="{StaticResource MutedLabel}" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="{Binding Remaining, Converter={StaticResource Currency}, StringFormat='Kalan {0}'}"
+                                   Style="{StaticResource MutedLabel}" HorizontalOptions="End" />
+                        </Grid>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenCommand, Source={RelativeSource AncestorType={x:Type vm:InvoicesViewModel}}, x:DataType=vm:InvoicesViewModel}"
+                                                  CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </RefreshView>
+</views:BasePage>

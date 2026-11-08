@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application
+    x:Class="Hesapla.Mobile.App"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:styles="clr-namespace:Hesapla.Mobile.Resources.Styles"
+    xmlns:conv="clr-namespace:Hesapla.Mobile.Converters"
+    xmlns:controls="clr-namespace:Hesapla.Mobile.Controls">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <styles:Styles />
+            </ResourceDictionary.MergedDictionaries>
+
+            <conv:StatusTextConverter x:Key="StatusText" />
+            <conv:StatusColorConverter x:Key="StatusColor" />
+            <conv:StatusColorConverter x:Key="StatusTint" Alpha="0.16" />
+            <conv:InverseBoolConverter x:Key="Not" />
+            <conv:HasTextConverter x:Key="HasText" />
+            <conv:CurrencyConverter x:Key="Currency" />
+            <conv:DateTextConverter x:Key="DateText" />
+            <conv:IntToBoolConverter x:Key="IntToBool" />
+            <conv:StatusTextMultiConverter x:Key="StatusTextMulti" />
+            <conv:StatusColorMultiConverter x:Key="StatusColorMulti" />
+            <conv:StatusColorMultiConverter x:Key="StatusTintMulti" Alpha="0.16" />
+            <conv:NotNullConverter x:Key="NotNull" />
+            <controls:RouteToIconConverter x:Key="RouteIcon" />
+            <controls:EmojiToIconConverter x:Key="EmojiIcon" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

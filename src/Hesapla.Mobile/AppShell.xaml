@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="Hesapla.Mobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:Hesapla.Mobile.Views.Pages"
+    xmlns:local="clr-namespace:Hesapla.Mobile"
+    xmlns:controls="clr-namespace:Hesapla.Mobile.Controls"
+    x:DataType="local:AppShell"
+    FlyoutBehavior="Flyout"
+    Shell.BackgroundColor="{DynamicResource HeaderBackgroundColor}"
+    Shell.ForegroundColor="{DynamicResource PrimaryTextColor}"
+    Shell.TitleColor="{DynamicResource PrimaryTextColor}"
+    Shell.TabBarIsVisible="False">
+
+    <Shell.FlyoutHeader>
+        <VerticalStackLayout Padding="20,44,20,18" Spacing="14" BackgroundColor="#312E81">
+            <HorizontalStackLayout Spacing="10">
+                <Image Source="hesapla_logo.png" WidthRequest="40" HeightRequest="40" />
+                <VerticalStackLayout VerticalOptions="Center" Spacing="0">
+                    <Label Text="Hesapla" FontSize="17" FontFamily="OpenSansSemibold" TextColor="White" />
+                    <Label Text="{Binding FirmName}" FontSize="12" TextColor="#C7D2FE" LineBreakMode="TailTruncation" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+            <Border Padding="12,10" StrokeThickness="0" StrokeShape="RoundRectangle 12" BackgroundColor="#3730A3">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Border Style="{StaticResource IconTile}" WidthRequest="34" HeightRequest="34" BackgroundColor="#312E81">
+                        <controls:Icon Name="user" Size="18" Color="#A5B4FC" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="0">
+                        <Label Text="{Binding UserFullName}" FontSize="14" FontFamily="OpenSansSemibold" TextColor="White" LineBreakMode="TailTruncation" />
+                        <Label Text="{Binding UserRoleText}" FontSize="12" TextColor="#C7D2FE" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+    </Shell.FlyoutHeader>
+
+    <!-- Menü öğesi: simge + başlık; seçili öğe vurgulu zemin. -->
+    <Shell.ItemTemplate>
+        <DataTemplate x:DataType="BaseShellItem">
+            <Border Margin="10,2" Padding="12,0" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 10" BackgroundColor="Transparent">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal" />
+                            <VisualState x:Name="Selected">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </VisualStateManager.VisualStateGroups>
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                    <controls:Icon Name="{Binding Route, Converter={StaticResource RouteIcon}}" Size="20" Color="{DynamicResource SecondaryTextColor}" />
+                    <Label Grid.Column="1" Text="{Binding Title}" FontSize="15" VerticalOptions="Center" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Shell.ItemTemplate>
+
+    <!-- Giriş (menüde görünmez) -->
+    <ShellContent
+        Route="login"
+        FlyoutItemIsVisible="False"
+        Shell.FlyoutBehavior="Disabled"
+        ContentTemplate="{DataTemplate pages:LoginPage}" />
+
+    <FlyoutItem Route="dashboard" Title="Pano">
+        <ShellContent ContentTemplate="{DataTemplate pages:DashboardPage}" />
+    </FlyoutItem>
+    <FlyoutItem Route="customers" Title="Cariler">
+        <ShellContent ContentTemplate="{DataTemplate pages:CustomersPage}" />
+    </FlyoutItem>
+    <FlyoutItem Route="invoices" Title="Faturalar">
+        <ShellContent ContentTemplate="{DataTemplate pages:InvoicesPage}" />
+    </FlyoutItem>
+    <FlyoutItem Route="cash" Title="Kasa ve Banka">
+        <ShellContent ContentTemplate="{DataTemplate pages:CashPage}" />
+    </FlyoutItem>
+    <FlyoutItem Route="settings" Title="Hesabım">
+        <ShellContent ContentTemplate="{DataTemplate pages:SettingsPage}" />
+    </FlyoutItem>
+
+    <Shell.FlyoutFooter>
+        <Button
+            Margin="16,8,16,32"
+            Style="{StaticResource SecondaryButton}"
+            TextColor="{DynamicResource ErrorTextColor}"
+            Text="Oturumu kapat"
+            Clicked="OnLogoutClicked" />
+    </Shell.FlyoutFooter>
+</Shell>

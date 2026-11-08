@@ -1,4 +1,4 @@
-# Hesap — KOBİ ön muhasebe (SaaS)
+# Hesapla — KOBİ ön muhasebe (SaaS)
 
 Küçük ve orta ölçekli işletmeler için abonelikle satılan çok firmalı ön muhasebe yazılımı:
 cari hesaplar, satış/alış faturaları, kasa-banka, tahsilat/ödeme, gelir/gider, raporlar.
@@ -24,13 +24,13 @@ Platform yöneticisi (siz) firmaları, abonelik bitiş tarihlerini ve paketleri 
 ## Klasör yapısı
 
 ```
-Hesap.slnx                 API çözümü (mobil proje ayrı derlenir, aşağıya bakın)
+Hesapla.slnx                 API çözümü (mobil proje ayrı derlenir, aşağıya bakın)
 db/schema.sql              Veritabanı şeması (API'ye gömülüdür; açılışta uygulanır)
 db/make-doc.py             docs/VERITABANI-KURULUM.txt dosyasını şemadan üretir
 docs/VERITABANI-KURULUM.txt  Yerel ve sunucu kurulum betikleri (MySQL)
-src/Hesap.Api/             ASP.NET Core 10 API + web panelinin barındırılması
-src/Hesap.Api/ClientApp/   React + Vite + Mantine web paneli (derlenince wwwroot/app)
-src/Hesap.Mobile/          .NET MAUI mobil uygulama
+src/Hesapla.Api/             ASP.NET Core 10 API + web panelinin barındırılması
+src/Hesapla.Api/ClientApp/   React + Vite + Mantine web paneli (derlenince wwwroot/app)
+src/Hesapla.Mobile/          .NET MAUI mobil uygulama
 ```
 
 ## Geliştirme ortamı
@@ -42,17 +42,17 @@ Mobil için ek olarak .NET MAUI iş yükü ve Android SDK (iOS için Mac + Xcode
 2. Gizli ayarları user-secrets ile girin (dosyaya yazmayın):
 
    ```bash
-   cd src/Hesap.Api
-   dotnet user-secrets set "ConnectionStrings:Hesap" "Server=127.0.0.1;Port=3306;Database=hesap;User ID=hesap_app;Password=...;"
+   cd src/Hesapla.Api
+   dotnet user-secrets set "ConnectionStrings:Hesapla" "Server=127.0.0.1;Port=3306;Database=hesapla;User ID=hesapla_app;Password=...;"
    dotnet user-secrets set "Jwt:Key" "<en az 32 karakterlik rastgele anahtar>"
    dotnet user-secrets set "Setup:SuperUserEmail" "siz@alanadiniz.com"
    dotnet user-secrets set "Setup:SuperUserPassword" "<güçlü şifre>"
    ```
 
-3. API: `dotnet run --project src/Hesap.Api` → http://localhost:5300
-4. Web paneli (sıcak yenileme): `cd src/Hesap.Api/ClientApp && npm install && npm run dev` → http://localhost:5174
+3. API: `dotnet run --project src/Hesapla.Api` → http://localhost:5300
+4. Web paneli (sıcak yenileme): `cd src/Hesapla.Api/ClientApp && npm install && npm run dev` → http://localhost:5174
    (API isteklerini 5300'e yönlendirir). `npm run build` çıktısı `wwwroot/app`'e yazılır ve API tarafından sunulur.
-5. Mobil (Android emülatörü): `cd src/Hesap.Mobile && dotnet build -f net10.0-android -t:Install`
+5. Mobil (Android emülatörü): `cd src/Hesapla.Mobile && dotnet build -f net10.0-android -t:Install`
    Debug sürüm emülatörde `http://10.0.2.2:5300/` adresine bağlanır.
 
 İlk açılışta platform yöneticisi hesabı `Setup:*` değerleriyle oluşturulur. Firmalar `/register`
@@ -65,14 +65,14 @@ sayfasından kendileri kaydolur (14 gün deneme).
 2. Yayın paketi (web paneli otomatik derlenir):
 
    ```bash
-   dotnet publish src/Hesap.Api -c Release -o ./publish
+   dotnet publish src/Hesapla.Api -c Release -o ./publish
    ```
 
 3. Sunucuda ayarları **ortam değişkeni** olarak verin:
 
    | Değişken | Açıklama |
    |---|---|
-   | `ConnectionStrings__Hesap` | MySQL bağlantı cümlesi |
+   | `ConnectionStrings__Hesapla` | MySQL bağlantı cümlesi |
    | `Jwt__Key` | En az 32 karakter rastgele anahtar (mobil oturumlar) |
    | `App__PublicBaseUrl` | `https://alanadiniz.com` — şifre sıfırlama e-postalarındaki bağlantı |
    | `Setup__SuperUserEmail` / `Setup__SuperUserPassword` | İlk platform yöneticisi (oluştuktan sonra kaldırılabilir) |
@@ -87,16 +87,16 @@ sayfasından kendileri kaydolur (14 gün deneme).
 ## Mobil uygulamanın yayını
 
 - Canlı API adresi derleme sırasında verilir:
-  `dotnet publish src/Hesap.Mobile -f net10.0-android -c Release -p:HesapApiBaseUrl=https://alanadiniz.com/`
-- Mağazaya göndermeden önce `Hesap.Mobile.csproj` içindeki `ApplicationId` (`com.hesap.mobile`) ve
-  `HesapApiBaseUrl` varsayılanı (`https://hesap.example.com/`) kendi değerlerinizle değiştirilmelidir.
+  `dotnet publish src/Hesapla.Mobile -f net10.0-android -c Release -p:HesaplaApiBaseUrl=https://alanadiniz.com/`
+- Mağazaya göndermeden önce `Hesapla.Mobile.csproj` içindeki `ApplicationId` (`com.hesapla.mobile`) ve
+  `HesaplaApiBaseUrl` varsayılanı (`https://hesapla.example.com/`) kendi değerlerinizle değiştirilmelidir.
 - Android imzalama anahtarı (keystore) ve iOS sertifikaları sizin hesaplarınızla oluşturulur.
 - Mobil uygulama firma kullanıcıları içindir; fatura kesimi, cari/ürün tanımı ve raporlar web panelindedir.
 
 ## Satış öncesi kontrol listesi
 
-- **Alan adı ve marka**: "Hesap" çalışma adıdır; ürün adı, logo (`wwwroot`/`public/brand`, mobil `Resources`) ve
-  `App:Name` değiştirilebilir.
+- **Alan adı ve marka**: ürün adı "Hesapla"dır; alan adını aldıktan sonra `App:PublicBaseUrl`, mobil
+  `HesaplaApiBaseUrl` ve `ApplicationId` buna göre güncellenmelidir. Logo: `ClientApp/public/brand`, mobil `Resources`.
 - **QuestPDF lisansı**: Community lisansı yıllık cirosu 1 milyon USD'nin altındaki şirketler için ücretsizdir.
   Yazılımı satan şirketin cirosu bu sınırı aşarsa Professional/Enterprise lisans gerekir.
 - **Abonelik ödemesi**: aboneliğin kartla tahsili henüz yok; süre uzatma platform panelinden elle yapılır.

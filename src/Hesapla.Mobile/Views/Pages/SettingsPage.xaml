@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:BasePage
+    x:Class="Hesapla.Mobile.Views.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Hesapla.Mobile.Views"
+    xmlns:vm="clr-namespace:Hesapla.Mobile.ViewModels"
+    xmlns:api="clr-namespace:Hesapla.Mobile.Models.Api"
+    x:DataType="vm:SettingsViewModel"
+    Title="Hesabım">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding User.FullName}" Style="{StaticResource CardTitleLabel}" FontSize="17" />
+                    <Label Text="{Binding User.Email}" Style="{StaticResource SubtitleLabel}" />
+                    <Label Text="{Binding User.RoleLabel}" Style="{StaticResource MutedLabel}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Firma ve abonelik" Style="{StaticResource SectionTitleLabel}" />
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="8">
+                    <Label Text="Firma" Style="{StaticResource SubtitleLabel}" />
+                    <Label Grid.Column="1" Text="{Binding User.Firm.Name}" HorizontalTextAlignment="End" />
+                    <Label Grid.Row="1" Text="Paket" Style="{StaticResource SubtitleLabel}" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding PlanText}" HorizontalTextAlignment="End" />
+                    <Label Grid.Row="2" Text="Abonelik" Style="{StaticResource SubtitleLabel}" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding SubscriptionText}" HorizontalTextAlignment="End" />
+                </Grid>
+            </Border>
+
+            <Label Text="Görünüm" Style="{StaticResource SectionTitleLabel}" />
+            <Border Style="{StaticResource InputBorder}">
+                <Picker Title="Tema" ItemsSource="{x:Static vm:SettingsViewModel.Themes}" SelectedIndex="{Binding ThemeIndex}"
+                        ItemDisplayBinding="{Binding Text, x:DataType=api:Option}" />
+            </Border>
+
+            <Label Text="Güvenlik" Style="{StaticResource SectionTitleLabel}" />
+            <Button Text="Şifre değiştir" Style="{StaticResource SecondaryButton}" Command="{Binding ChangePasswordCommand}" />
+
+            <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorLabel}" IsVisible="{Binding HasError}" />
+            <Label Text="Firma bilgileri, kullanıcılar, fatura kesimi ve raporlar web panelinden yönetilir." Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" Margin="0,12,0,0" />
+            <Label Text="{Binding Version}" Style="{StaticResource MutedLabel}" HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</views:BasePage>
