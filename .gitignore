@@ -1,0 +1,31 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+.idea/
+publish/
+
+# Web paneli: bağımlılıklar ve derleme çıktısı (dotnet publish sırasında yeniden üretilir)
+node_modules/
+src/Hesap.Api/wwwroot/app/
+src/Hesap.Api/ClientApp/dist/
+
+# Çalışma anı verisi (firma logoları) — repoya değil yedeğe girer
+src/Hesap.Api/App_Data/
+
+# Gizli ayarlar (user-secrets dışında yerel dosya kullanılırsa)
+appsettings.*.local.json
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# Sistem
+.DS_Store
+Thumbs.db
+*.log
+
+# TypeScript artımlı derleme önbelleği
+*.tsbuildinfo

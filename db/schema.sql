@@ -1,0 +1,317 @@
+-- =====================================================================================
+-- HESAP — KOBİ ön muhasebe (SaaS) veritabanı şeması
+-- MySQL 8.0.16+ (CHECK kısıtları için). Karakter seti utf8mb4, sıralama utf8mb4_0900_ai_ci.
+--
+-- Çok kiracılı yapı: her işletme bir FİRMA'dır; firmaya ait her tabloda FIRMA_ID bulunur ve
+-- tüm sorgular oturumdaki firmaya göre süzülür. Para alanları DECIMAL(18,2), miktar DECIMAL(18,3),
+-- birim fiyat DECIMAL(18,4). Kayıtlar silinmez; fatura ve hareketler İPTAL edilir (denetim izi).
+-- Bu betik tekrar çalıştırılabilir (CREATE TABLE IF NOT EXISTS).
+-- =====================================================================================
+
+-- ------------------------------------------------------------------ Firmalar (kiracılar)
+CREATE TABLE IF NOT EXISTS t_firmalar
+(
+    FIRMA_ID          BIGINT        NOT NULL AUTO_INCREMENT,
+    UNVAN             VARCHAR(200)  NOT NULL,
+    VERGI_NO          VARCHAR(11)   NULL COMMENT 'Vergi no (10) veya T.C. kimlik no (11, şahıs)',
+    VERGI_DAIRESI     VARCHAR(80)   NULL,
+    ADRES             VARCHAR(500)  NULL,
+    IL                VARCHAR(60)   NULL,
+    ILCE              VARCHAR(80)   NULL,
+    TELEFON           VARCHAR(30)   NULL,
+    EPOSTA            VARCHAR(150)  NULL,
+    IBAN              VARCHAR(34)   NULL COMMENT 'Faturada gösterilen IBAN',
+    LOGO_DOSYA        VARCHAR(200)  NULL COMMENT 'wwwroot/uploads/logos altındaki dosya adı',
+    FATURA_NOTU       VARCHAR(500)  NULL COMMENT 'Fatura altına yazılan sabit not',
+    PAKET             VARCHAR(2)    NOT NULL DEFAULT 'DE' COMMENT 'DE deneme, ST standart, PR profesyonel',
+    ABONELIK_BITIS    DATE          NOT NULL,
+    DURUM             VARCHAR(2)    NOT NULL DEFAULT 'AK' COMMENT 'AK aktif, AS askıya alındı',
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (FIRMA_ID),
+    KEY IX_FIRMA_DURUM (DURUM, ABONELIK_BITIS),
+    CONSTRAINT CK_FIRMA_PAKET CHECK (PAKET IN ('DE', 'ST', 'PR')),
+    CONSTRAINT CK_FIRMA_DURUM CHECK (DURUM IN ('AK', 'AS'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Kullanıcılar
+-- ROL: SU platform yöneticisi (FIRMA_ID NULL), AD firma yöneticisi, AC muhasebe, VW yalnızca görüntüleme.
+CREATE TABLE IF NOT EXISTS t_kullanicilar
+(
+    KULLANICI_ID      BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NULL,
+    AD_SOYAD          VARCHAR(120)  NOT NULL,
+    EPOSTA            VARCHAR(150)  NOT NULL,
+    TELEFON           VARCHAR(30)   NULL,
+    PAROLA_HASH       VARCHAR(256)  NOT NULL,
+    ROL               VARCHAR(2)    NOT NULL,
+    AKTIF_MI          TINYINT       NOT NULL DEFAULT 1,
+    HATALI_GIRIS      INT           NOT NULL DEFAULT 0,
+    KILITLI_MI        TINYINT       NOT NULL DEFAULT 0,
+    SON_GIRIS         DATETIME      NULL,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (KULLANICI_ID),
+    UNIQUE KEY UX_KULLANICI_EPOSTA (EPOSTA),
+    KEY IX_KULLANICI_FIRMA (FIRMA_ID, AKTIF_MI),
+    CONSTRAINT FK_KULLANICI_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT CK_KULLANICI_ROL CHECK (ROL IN ('SU', 'AD', 'AC', 'VW')),
+    CONSTRAINT CK_KULLANICI_FIRMA CHECK ((ROL = 'SU' AND FIRMA_ID IS NULL) OR (ROL <> 'SU' AND FIRMA_ID IS NOT NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Mobil oturumlar (yenileme belirteci yalnızca SHA-256 özeti olarak saklanır).
+CREATE TABLE IF NOT EXISTS t_mobil_oturumlar
+(
+    OTURUM_ID         BIGINT        NOT NULL AUTO_INCREMENT,
+    KULLANICI_ID      BIGINT        NOT NULL,
+    TOKEN_HASH        CHAR(64)      NOT NULL,
+    CIHAZ             VARCHAR(120)  NULL,
+    BITIS             DATETIME      NOT NULL,
+    IPTAL_MI          TINYINT       NOT NULL DEFAULT 0,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (OTURUM_ID),
+    UNIQUE KEY UX_MOBIL_TOKEN (TOKEN_HASH),
+    KEY IX_MOBIL_KULLANICI (KULLANICI_ID),
+    CONSTRAINT FK_MOBIL_KULLANICI FOREIGN KEY (KULLANICI_ID) REFERENCES t_kullanicilar (KULLANICI_ID) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Şifre sıfırlama belirteçleri (yalnızca SHA-256 özeti, 30 dakika geçerli, tek kullanımlık).
+CREATE TABLE IF NOT EXISTS t_parola_sifirlama
+(
+    ID                BIGINT        NOT NULL AUTO_INCREMENT,
+    KULLANICI_ID      BIGINT        NOT NULL,
+    TOKEN_HASH        CHAR(64)      NOT NULL,
+    BITIS             DATETIME      NOT NULL,
+    KULLANILDI        DATETIME      NULL,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ID),
+    KEY IX_PAROLA_TOKEN (TOKEN_HASH),
+    CONSTRAINT FK_PAROLA_KULLANICI FOREIGN KEY (KULLANICI_ID) REFERENCES t_kullanicilar (KULLANICI_ID) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Cari hesaplar (müşteri / tedarikçi)
+-- Bakiye (+) = cari bize borçlu (alacağımız), (−) = biz cariye borçluyuz.
+-- ACILIS_BAKIYESI aynı işaret kuralıyla girilir.
+CREATE TABLE IF NOT EXISTS t_cariler
+(
+    CARI_ID           BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NOT NULL,
+    TIP               VARCHAR(2)    NOT NULL COMMENT 'MU müşteri, TE tedarikçi, IK ikisi',
+    KOD               VARCHAR(30)   NOT NULL,
+    UNVAN             VARCHAR(200)  NOT NULL,
+    VERGI_NO          VARCHAR(11)   NULL,
+    VERGI_DAIRESI     VARCHAR(80)   NULL,
+    TELEFON           VARCHAR(30)   NULL,
+    EPOSTA            VARCHAR(150)  NULL,
+    ADRES             VARCHAR(500)  NULL,
+    IL                VARCHAR(60)   NULL,
+    ILCE              VARCHAR(80)   NULL,
+    VADE_GUN          INT           NOT NULL DEFAULT 0,
+    ACILIS_BAKIYESI   DECIMAL(18,2) NOT NULL DEFAULT 0,
+    NOTLAR            VARCHAR(1000) NULL,
+    AKTIF_MI          TINYINT       NOT NULL DEFAULT 1,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (CARI_ID),
+    UNIQUE KEY UX_CARI_KOD (FIRMA_ID, KOD),
+    KEY IX_CARI_UNVAN (FIRMA_ID, UNVAN),
+    CONSTRAINT FK_CARI_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT CK_CARI_TIP CHECK (TIP IN ('MU', 'TE', 'IK')),
+    CONSTRAINT CK_CARI_VADE CHECK (VADE_GUN BETWEEN 0 AND 365)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Ürün / hizmet kartları
+-- Stok = ACILIS_STOK + alış faturaları − satış faturaları (iptal edilenler hariç), yalnızca STOK_TAKIP = 1 olanlarda.
+CREATE TABLE IF NOT EXISTS t_urunler
+(
+    URUN_ID           BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NOT NULL,
+    TUR               VARCHAR(2)    NOT NULL COMMENT 'UR ürün, HZ hizmet',
+    KOD               VARCHAR(40)   NOT NULL,
+    AD                VARCHAR(200)  NOT NULL,
+    BIRIM             VARCHAR(20)   NOT NULL DEFAULT 'Adet',
+    KDV_ORANI         DECIMAL(5,2)  NOT NULL DEFAULT 20,
+    SATIS_FIYATI      DECIMAL(18,4) NOT NULL DEFAULT 0,
+    ALIS_FIYATI       DECIMAL(18,4) NOT NULL DEFAULT 0,
+    STOK_TAKIP        TINYINT       NOT NULL DEFAULT 0,
+    ACILIS_STOK       DECIMAL(18,3) NOT NULL DEFAULT 0,
+    KRITIK_STOK       DECIMAL(18,3) NULL,
+    AKTIF_MI          TINYINT       NOT NULL DEFAULT 1,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (URUN_ID),
+    UNIQUE KEY UX_URUN_KOD (FIRMA_ID, KOD),
+    KEY IX_URUN_AD (FIRMA_ID, AD),
+    CONSTRAINT FK_URUN_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT CK_URUN_TUR CHECK (TUR IN ('UR', 'HZ')),
+    CONSTRAINT CK_URUN_KDV CHECK (KDV_ORANI BETWEEN 0 AND 100),
+    CONSTRAINT CK_URUN_FIYAT CHECK (SATIS_FIYATI >= 0 AND ALIS_FIYATI >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Kasa ve banka hesapları
+CREATE TABLE IF NOT EXISTS t_hesaplar
+(
+    HESAP_ID          BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NOT NULL,
+    TUR               VARCHAR(2)    NOT NULL COMMENT 'KA kasa, BA banka',
+    AD                VARCHAR(120)  NOT NULL,
+    BANKA_ADI         VARCHAR(120)  NULL,
+    IBAN              VARCHAR(34)   NULL,
+    ACILIS_BAKIYESI   DECIMAL(18,2) NOT NULL DEFAULT 0,
+    AKTIF_MI          TINYINT       NOT NULL DEFAULT 1,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (HESAP_ID),
+    UNIQUE KEY UX_HESAP_AD (FIRMA_ID, AD),
+    CONSTRAINT FK_HESAP_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT CK_HESAP_TUR CHECK (TUR IN ('KA', 'BA'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Gelir / gider kategorileri
+CREATE TABLE IF NOT EXISTS t_kategoriler
+(
+    KATEGORI_ID       BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NOT NULL,
+    TUR               VARCHAR(2)    NOT NULL COMMENT 'GI gider, GE diğer gelir',
+    AD                VARCHAR(80)   NOT NULL,
+    AKTIF_MI          TINYINT       NOT NULL DEFAULT 1,
+    PRIMARY KEY (KATEGORI_ID),
+    UNIQUE KEY UX_KATEGORI_AD (FIRMA_ID, TUR, AD),
+    CONSTRAINT FK_KATEGORI_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT CK_KATEGORI_TUR CHECK (TUR IN ('GI', 'GE'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Faturalar
+-- TUR: SA satış, AL alış. Satışta BELGE_NO firma + yıl içinde sıralıdır (t_belge_sayac ile atomik).
+-- Alışta tedarikçinin fatura numarası girilir; farklı tedarikçiler aynı numarayı kullanabildiği için
+-- benzersizlik cari bazındadır (aynı tedarikçiden aynı numara iki kez girilemez).
+-- Tutarlar satırlardan sunucuda hesaplanır; istemciden gelen toplamlara güvenilmez.
+CREATE TABLE IF NOT EXISTS t_faturalar
+(
+    FATURA_ID         BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NOT NULL,
+    TUR               VARCHAR(2)    NOT NULL,
+    BELGE_NO          VARCHAR(30)   NOT NULL,
+    CARI_ID           BIGINT        NOT NULL,
+    TARIH             DATE          NOT NULL,
+    VADE_TARIHI       DATE          NOT NULL,
+    ARA_TOPLAM        DECIMAL(18,2) NOT NULL COMMENT 'İskonto sonrası, KDV hariç',
+    ISKONTO_TOPLAM    DECIMAL(18,2) NOT NULL DEFAULT 0,
+    KDV_TOPLAM        DECIMAL(18,2) NOT NULL,
+    GENEL_TOPLAM      DECIMAL(18,2) NOT NULL,
+    ACIKLAMA          VARCHAR(500)  NULL,
+    IPTAL_MI          TINYINT       NOT NULL DEFAULT 0,
+    IPTAL_NEDENI      VARCHAR(255)  NULL,
+    OLUSTURAN_ID      BIGINT        NOT NULL,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (FATURA_ID),
+    UNIQUE KEY UX_FATURA_NO (FIRMA_ID, TUR, CARI_ID, BELGE_NO),
+    KEY IX_FATURA_BELGE (FIRMA_ID, BELGE_NO),
+    KEY IX_FATURA_CARI (FIRMA_ID, CARI_ID, TARIH),
+    KEY IX_FATURA_TARIH (FIRMA_ID, TUR, TARIH),
+    KEY IX_FATURA_VADE (FIRMA_ID, VADE_TARIHI),
+    CONSTRAINT FK_FATURA_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT FK_FATURA_CARI FOREIGN KEY (CARI_ID) REFERENCES t_cariler (CARI_ID),
+    CONSTRAINT FK_FATURA_OLUSTURAN FOREIGN KEY (OLUSTURAN_ID) REFERENCES t_kullanicilar (KULLANICI_ID),
+    CONSTRAINT CK_FATURA_TUR CHECK (TUR IN ('SA', 'AL')),
+    CONSTRAINT CK_FATURA_TUTAR CHECK (GENEL_TOPLAM >= 0 AND KDV_TOPLAM >= 0),
+    CONSTRAINT CK_FATURA_VADE CHECK (VADE_TARIHI >= TARIH)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS t_fatura_satirlari
+(
+    SATIR_ID          BIGINT        NOT NULL AUTO_INCREMENT,
+    FATURA_ID         BIGINT        NOT NULL,
+    FIRMA_ID          BIGINT        NOT NULL,
+    SIRA              INT           NOT NULL,
+    URUN_ID           BIGINT        NULL,
+    ACIKLAMA          VARCHAR(300)  NOT NULL,
+    MIKTAR            DECIMAL(18,3) NOT NULL,
+    BIRIM             VARCHAR(20)   NOT NULL,
+    BIRIM_FIYAT       DECIMAL(18,4) NOT NULL,
+    ISKONTO_ORANI     DECIMAL(5,2)  NOT NULL DEFAULT 0,
+    KDV_ORANI         DECIMAL(5,2)  NOT NULL,
+    TUTAR             DECIMAL(18,2) NOT NULL COMMENT 'İskonto sonrası, KDV hariç',
+    KDV_TUTARI        DECIMAL(18,2) NOT NULL,
+    PRIMARY KEY (SATIR_ID),
+    KEY IX_SATIR_FATURA (FATURA_ID, SIRA),
+    KEY IX_SATIR_URUN (FIRMA_ID, URUN_ID),
+    CONSTRAINT FK_SATIR_FATURA FOREIGN KEY (FATURA_ID) REFERENCES t_faturalar (FATURA_ID) ON DELETE CASCADE,
+    CONSTRAINT FK_SATIR_URUN FOREIGN KEY (URUN_ID) REFERENCES t_urunler (URUN_ID),
+    CONSTRAINT CK_SATIR_MIKTAR CHECK (MIKTAR > 0),
+    CONSTRAINT CK_SATIR_FIYAT CHECK (BIRIM_FIYAT >= 0),
+    CONSTRAINT CK_SATIR_ORAN CHECK (ISKONTO_ORANI BETWEEN 0 AND 100 AND KDV_ORANI BETWEEN 0 AND 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Belge numarası sayacı: aynı anda iki fatura aynı numarayı alamaz.
+CREATE TABLE IF NOT EXISTS t_belge_sayac
+(
+    FIRMA_ID          BIGINT        NOT NULL,
+    TUR               VARCHAR(2)    NOT NULL,
+    YIL               INT           NOT NULL,
+    SON_NO            INT           NOT NULL DEFAULT 0,
+    PRIMARY KEY (FIRMA_ID, TUR, YIL),
+    CONSTRAINT FK_SAYAC_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Kasa / banka hareketleri
+-- TUR: TA tahsilat (cariden, hesaba giriş), OD ödeme (cariye, hesaptan çıkış),
+--      GI gider (hesaptan çıkış), GE diğer gelir (hesaba giriş), VI virman (HESAP_ID → KARSI_HESAP_ID).
+-- TUTAR her zaman pozitiftir; yön türden gelir. Gider/gelirde TUTAR KDV dahildir, KDV_TUTARI ayrıca tutulur.
+CREATE TABLE IF NOT EXISTS t_hareketler
+(
+    HAREKET_ID        BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NOT NULL,
+    TUR               VARCHAR(2)    NOT NULL,
+    TARIH             DATE          NOT NULL,
+    HESAP_ID          BIGINT        NOT NULL,
+    KARSI_HESAP_ID    BIGINT        NULL,
+    CARI_ID           BIGINT        NULL,
+    FATURA_ID         BIGINT        NULL,
+    KATEGORI_ID       BIGINT        NULL,
+    TUTAR             DECIMAL(18,2) NOT NULL,
+    KDV_ORANI         DECIMAL(5,2)  NOT NULL DEFAULT 0,
+    KDV_TUTARI        DECIMAL(18,2) NOT NULL DEFAULT 0,
+    BELGE_NO          VARCHAR(40)   NULL,
+    ACIKLAMA          VARCHAR(500)  NULL,
+    IPTAL_MI          TINYINT       NOT NULL DEFAULT 0,
+    IPTAL_NEDENI      VARCHAR(255)  NULL,
+    OLUSTURAN_ID      BIGINT        NOT NULL,
+    KAYIT_TARIHI      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    GUNCELLEME_TARIHI DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (HAREKET_ID),
+    KEY IX_HAREKET_HESAP (FIRMA_ID, HESAP_ID, TARIH),
+    KEY IX_HAREKET_KARSI (FIRMA_ID, KARSI_HESAP_ID),
+    KEY IX_HAREKET_CARI (FIRMA_ID, CARI_ID, TARIH),
+    KEY IX_HAREKET_FATURA (FIRMA_ID, FATURA_ID),
+    KEY IX_HAREKET_TARIH (FIRMA_ID, TUR, TARIH),
+    CONSTRAINT FK_HAREKET_FIRMA FOREIGN KEY (FIRMA_ID) REFERENCES t_firmalar (FIRMA_ID),
+    CONSTRAINT FK_HAREKET_HESAP FOREIGN KEY (HESAP_ID) REFERENCES t_hesaplar (HESAP_ID),
+    CONSTRAINT FK_HAREKET_KARSI FOREIGN KEY (KARSI_HESAP_ID) REFERENCES t_hesaplar (HESAP_ID),
+    CONSTRAINT FK_HAREKET_CARI FOREIGN KEY (CARI_ID) REFERENCES t_cariler (CARI_ID),
+    CONSTRAINT FK_HAREKET_FATURA FOREIGN KEY (FATURA_ID) REFERENCES t_faturalar (FATURA_ID),
+    CONSTRAINT FK_HAREKET_KATEGORI FOREIGN KEY (KATEGORI_ID) REFERENCES t_kategoriler (KATEGORI_ID),
+    CONSTRAINT FK_HAREKET_OLUSTURAN FOREIGN KEY (OLUSTURAN_ID) REFERENCES t_kullanicilar (KULLANICI_ID),
+    CONSTRAINT CK_HAREKET_TUR CHECK (TUR IN ('TA', 'OD', 'GI', 'GE', 'VI')),
+    CONSTRAINT CK_HAREKET_TUTAR CHECK (TUTAR > 0 AND KDV_TUTARI >= 0 AND KDV_TUTARI <= TUTAR),
+    CONSTRAINT CK_HAREKET_VIRMAN CHECK ((TUR = 'VI') = (KARSI_HESAP_ID IS NOT NULL)),
+    CONSTRAINT CK_HAREKET_CARI CHECK (TUR NOT IN ('TA', 'OD') OR CARI_ID IS NOT NULL)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ------------------------------------------------------------------ Denetim kaydı
+CREATE TABLE IF NOT EXISTS t_denetim
+(
+    DENETIM_ID        BIGINT        NOT NULL AUTO_INCREMENT,
+    FIRMA_ID          BIGINT        NULL,
+    KULLANICI_ID      BIGINT        NULL,
+    ISLEM             VARCHAR(40)   NOT NULL,
+    HEDEF_TUR         VARCHAR(20)   NULL,
+    HEDEF_ID          BIGINT        NULL,
+    ACIKLAMA          VARCHAR(500)  NULL,
+    IP                VARCHAR(45)   NULL,
+    TARIH             DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (DENETIM_ID),
+    KEY IX_DENETIM_FIRMA (FIRMA_ID, TARIH),
+    KEY IX_DENETIM_KULLANICI (KULLANICI_ID, TARIH)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

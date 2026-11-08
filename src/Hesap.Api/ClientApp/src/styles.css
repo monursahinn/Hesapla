@@ -1,0 +1,247 @@
+/* Genel ayarlar. Bileşen stilleri Mantine temasındadır (src/theme.ts). */
+
+html {
+  /* "Yazı Boyutu" tercihi (S/M/L/XL) tüm rem tabanlı ölçüleri büyütür / küçültür. */
+  font-size: calc(16px * var(--asy-font-scale, 1));
+}
+
+body {
+  /* Tema zemini (src/theme.ts → cssResolver); giriş sayfaları da aynı zemini kullanır. */
+  background: var(--asy-page-bg, var(--mantine-color-body));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 28%, transparent);
+}
+
+/* Rakam sütunları hizalı görünsün (tutarlar, tarihler). */
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- Yerleşim ---- */
+
+/* Yan yana kartlar her zaman aynı yükseklikte (Grid ve SimpleGrid hücreleri). */
+.mantine-Grid-col > .mantine-Card-root,
+.mantine-Grid-col > .mantine-Paper-root,
+.mantine-SimpleGrid-root > .mantine-Card-root {
+  height: 100%;
+}
+
+/* Tıklanabilir kart: hafif yükselme + vurgu kenarı. */
+.asy-card-link {
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+.asy-card-link:hover {
+  border-color: color-mix(in srgb, var(--mantine-primary-color-filled) 45%, var(--mantine-color-default-border));
+  box-shadow: var(--mantine-shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Kart başlığı (başlık + sağda işlem) — tüm sayfalarda aynı aralık. */
+.asy-card-title {
+  font-weight: 650;
+  font-size: var(--mantine-font-size-md);
+}
+
+/* Kenar menü: etkin öğede solda vurgu çizgisi. */
+.asy-nav-link {
+  position: relative;
+  border-radius: var(--mantine-radius-md);
+  font-weight: 500;
+}
+.asy-nav-link[data-active]::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--mantine-primary-color-filled);
+}
+
+/* ---- Üst ilerleme çizgisi (veri yüklenirken) ---- */
+.asy-top-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+.asy-top-progress[data-visible] {
+  opacity: 1;
+}
+.asy-top-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, var(--mantine-primary-color-filled), transparent);
+}
+/* Animasyon yalnızca görünürken çalışır (boşta işlemci harcamaz). */
+.asy-top-progress[data-visible]::after {
+  animation: asy-progress 1.1s ease-in-out infinite;
+}
+@keyframes asy-progress {
+  from {
+    left: -35%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+/* ---- Bildirimler: üst çubuğun altında, sağda ----
+ * Mantine her köşe için ayrı kapsayıcı çizer; kaydırma yalnızca üst kapsayıcılara uygulanır (alttakilere
+ * "top" verilirse ekranı kaplayıp tıklamaları yutar). Kapsayıcı tıklamayı geçirir, bildirimin kendisi almaz. */
+.asy-notifications {
+  pointer-events: none;
+  /* Sabit 380px kutu dar telefonlarda (iPhone 390px) kenar boşluğuyla ekrandan taşıyor, sayfa yana kayıyordu. */
+  max-width: min(var(--notifications-container-width), calc(100% - 2 * var(--mantine-spacing-md))) !important;
+}
+.asy-notifications > * {
+  pointer-events: auto;
+}
+.asy-notifications[data-position^="top"] {
+  top: calc(64px + 12px) !important;
+}
+@media (max-width: 36em) {
+  .asy-notifications[data-position^="top"] {
+    top: calc(56px + 8px) !important;
+  }
+}
+
+/* Dokunmatik ekranlarda yazı kutuları en az 16px: iOS Safari daha küçük yazılı kutuya odaklanınca sayfayı
+   yakınlaştırır ve geri uzaklaştırmaz. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select,
+  .mantine-Input-input {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* ---- İnce kaydırma çubukları ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--mantine-color-dimmed) 45%, transparent) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Açılış (oturum yüklenirken) ---- */
+.asy-splash-bar {
+  position: relative;
+  width: 140px;
+  height: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--mantine-color-dimmed) 20%, transparent);
+}
+.asy-splash-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--mantine-primary-color-filled);
+  animation: asy-splash 1s ease-in-out infinite;
+}
+@keyframes asy-splash {
+  to {
+    left: 100%;
+  }
+}
+
+/* ---- Liste satırı ve ana-ayrıntı panelleri ---- */
+.asy-list-row {
+  display: block;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  transition: background-color 100ms ease;
+}
+.asy-list-row:hover {
+  background: var(--mantine-color-default-hover);
+}
+.asy-list-row[data-selected] {
+  background: var(--mantine-primary-color-light);
+  box-shadow: inset 3px 0 0 var(--mantine-primary-color-filled);
+}
+.asy-panel-scroll {
+  height: 320px;
+}
+@media (min-width: 75em) {
+  .asy-panel-scroll {
+    height: max(420px, calc(100dvh - 430px));
+  }
+}
+
+/* Izgarada geniş ekranda iki sütun kaplayan kart (telefonda tek sütun). */
+@media (min-width: 75em) {
+  .asy-span-2 {
+    grid-column: span 2;
+  }
+}
+
+/* ---- Giriş sayfaları ---- */
+.asy-auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 62em) {
+  .asy-auth {
+    grid-template-columns: minmax(420px, 46%) minmax(0, 1fr);
+  }
+}
+.asy-auth-brand {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(900px 500px at 0% 0%, rgba(99, 102, 241, 0.45), transparent 60%),
+    radial-gradient(700px 500px at 100% 100%, rgba(14, 165, 233, 0.3), transparent 60%),
+    linear-gradient(160deg, #1e1b4b 0%, #14123a 55%, #0b0a24 100%);
+}
+.asy-auth-brand::after {
+  /* İnce ızgara dokusu */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
+  pointer-events: none;
+}
+.asy-auth-brand > * {
+  position: relative;
+  z-index: 1;
+}

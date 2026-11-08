@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Marka renkleri (çivit mavisi); çalışma anında durum çubuğu temaya göre ThemeService'ten ayarlanır. -->
+    <color name="colorPrimary">#4F46E5</color>
+    <color name="colorPrimaryDark">#4F46E5</color>
+    <color name="colorAccent">#4F46E5</color>
+</resources>
